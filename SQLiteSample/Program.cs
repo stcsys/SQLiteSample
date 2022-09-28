@@ -6,34 +6,20 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 Console.WriteLine("Hello, World!");
 
-var controller = new Controller();
+/*
+「ツール」→「NuGetパッケージマネージャー」→「パッケージマネージャーコンソール」でコンソールを開き、以下のコマンドを実行
 
-//Create
-controller.Create(new Item { Id = 1, Name = "Hello" });
-controller.Create(new Item { Id = 2, Name = "World" });
+    Install-Package Microsoft.EntityFrameworkCore.Tools
+    Add-Migration InitialCreate
+    Update-Database
+ */
 
-//Read
-var item1 = controller.Read(1);
-Console.WriteLine($"after:{item1.Name}");
 
-//Update
-item1.Name = "Foo";
-controller.Update();
+EFTest.Create();
+var item = EFTest.Read(1);
+EFTest.Update();
+EFTest.Delete();
 
-var item2 = controller.Read(1);
-Console.WriteLine($"after:{item2.Name}");
-
-//Delete
-controller.Delete(item2);
-
-try
-{
-    controller.Read(1);
-}
-catch
-{
-    Console.WriteLine($"Not found");
-}
 
 [Table("Item")]
 public class Item
@@ -41,7 +27,6 @@ public class Item
     [Key]
     [Required]
     public uint Id { get; set; } 
-    [Required]
     public string Name { get; set; }
 }
 
@@ -63,39 +48,37 @@ public class ItemDbContext : DbContext
     }
 }
 
-public class Controller : IDisposable
+public class EFTest
 {
-    readonly ItemDbContext DbContext;
 
-    public Controller()
+    public static void Create()
     {
-        DbContext = new ItemDbContext();
+        using var db = new ItemDbContext();
+        db.Add(new Item() { Id = 1, Name = "Hello" });
+        db.Add(new Item() { Id = 2, Name = "World" });
+        db.SaveChanges();
     }
 
-    public void Create(Item newItem)
+    public static Item Read(int id)
     {
-        DbContext.Add(newItem);
-        DbContext.SaveChanges();
+        using var db = new ItemDbContext();
+        return db.Items.First(b => b.Id == id);
     }
 
-    public Item Read(int id)
+    public static void Update()
     {
-        return DbContext.Items.First(b => b.Id == id);
+        using var db = new ItemDbContext();
+        var item = db.Items.First(b => b.Id == 1);
+        item.Name = "Foo";
+        db.Update(item);
+        //db.SaveChanges();
     }
 
-    public void Update()
+    public static void Delete()
     {
-        DbContext.SaveChanges();
-    }
-
-    public void Delete(Item item)
-    {
-        DbContext.Remove(item);
-        DbContext.SaveChanges();
-    }
-
-    public void Dispose()
-    {
-        DbContext?.Dispose();
+        using var db = new ItemDbContext();
+        var item = db.Items.First(b => b.Id == 1);
+        db.Remove(item);
+        db.SaveChanges();
     }
 }
